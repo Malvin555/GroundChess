@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ♟️ Multiplayer Chess App
 
-## Getting Started
+A real-time, 2-player chess game built with **Next.js App Router**, **Socket.IO**, and **chess.js**.  
+**Note:** This project is a work in progress (WIP) — expect ongoing improvements and new features!
 
-First, run the development server:
+## 🚀 Features
+
+- **Real-time multiplayer** with Socket.IO
+- **Automatic color assignment:** White, Black, or Spectator maybe
+- **Move synchronization** across browsers
+- **JWT-based login** *(work without authentication)*
+- **Game history & match results** *(coming soon)*
+- **Bot opponent mode** *(WIP filter)*
+
+## 🛠️ Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/multiplayer-chess-app.git
+cd multiplayer-chess-app
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```
+JWT_SECRET=your_secret
+DATABASE_URL=your_postgres_url
+```
+
+> Replace `your_secret` and `your_postgres_url` with your own credentials.
+
+### 4. Database Setup
+
+This app uses **PostgreSQL** for persistent data (users, games, match history) and **Prisma** as the ORM.
+
+- Ensure PostgreSQL is installed and running.
+- Create a database (e.g., `chess_app_db`).
+- Update your `.env`:
+
+  ```
+  DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/chess_app_db"
+  ```
+
+  Replace `USER`, `PASSWORD`, and `chess_app_db` as needed.
+
+#### Install Prisma and Client Libraries
+
+```bash
+npm install @prisma/client
+npm install --save-dev prisma
+npm install pg
+```
+
+#### Initialize Prisma
+
+```bash
+npx prisma init
+```
+### 5. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 6. Test Multiplayer Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open multiple browser tabs and navigate to:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+http://localhost:3000/game/vs-player/room1
+```
 
-## Learn More
+Each tab will be assigned a color (White/Black) or Spectator mode automatically.
 
-To learn more about Next.js, take a look at the following resources:
+## 🧩 Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Technology         | Purpose                                 |
+|--------------------|-----------------------------------------|
+| Next.js App Router | Frontend framework                      |
+| TypeScript         | Type safety                             |
+| Socket.IO          | Real-time communication                 |
+| chess.js           | Chess logic engine                      |
+| react-chessboard   | Interactive chessboard UI               |
+| PostgreSQL + Prisma| Database & ORM                          |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📅 Roadmap
 
-## Deploy on Vercel
+- [x] Real-time multiplayer gameplay
+- [x] Color auto-assignment
+- [x] Move synchronization
+- [ ] JWT-based authentication *(in progress)*
+- [ ] Game history & match results *(coming soon)*
+- [ ] Play against a bot *(WIP)*
+- [ ] Enhanced UI/UX and mobile support
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ⚠️ Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- This project is under active development. Some features may be incomplete or unstable.
+- Contributions, bug reports, and suggestions are welcome!
+
+## 📖 License
+
+MIT
+
+## 🙋 FAQ
+
+**Q: How do I play with a friend?**  
+A: Share the room URL (e.g., `/game/vs-player/room1`) with your friend. Both of you can join the same room for a private match.
+
+**Q: Can I play against a bot?**  
+A: Bot mode work but still want to make it better.
+
+**Q: Where is my game history?**  
+A: Game history and match results are planned for a future release.
+
+**Q: How do I use the database?**  
+A: The app uses PostgreSQL with Prisma. See the "Database Setup" section above for configuration, schema, and usage details.
+
+## 🤝 Contributing
+
+Pull requests and feedback are encouraged! Please open an issue or submit a PR if you have ideas or find bugs.
