@@ -1,8 +1,7 @@
-// This file sets up the server-side Socket.IO once
-import type { NextApiRequest } from "next";
-import type { NextApiResponse } from "next";
+// pages/api/socket.ts
 import { Server as NetServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 type NextApiResponseWithSocket = NextApiResponse & {
   socket: {
@@ -19,7 +18,7 @@ export default function handler(
   res: NextApiResponseWithSocket,
 ) {
   if (!res.socket.server.io) {
-    console.log("🧩 Initializing Socket.IO server...");
+    console.log("🟢 Initializing Socket.IO server...");
 
     const io = new SocketIOServer(res.socket.server, {
       path: "/api/socket",
@@ -29,7 +28,7 @@ export default function handler(
     res.socket.server.io = io;
 
     io.on("connection", (socket) => {
-      console.log("🧑 Client connected:", socket.id);
+      console.log("🧑 Connected:", socket.id);
 
       socket.on("join-game", (roomId: string) => {
         if (!rooms[roomId]) rooms[roomId] = [];
@@ -45,7 +44,7 @@ export default function handler(
           }
         }
 
-        console.log(`Player joined room: ${roomId} as ${assignedColor}`);
+        console.log(`Player joined ${roomId} as ${assignedColor}`);
         socket.emit("assign-color", assignedColor);
       });
 

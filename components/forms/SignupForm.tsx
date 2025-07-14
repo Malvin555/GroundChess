@@ -4,6 +4,28 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Crown,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -15,13 +37,24 @@ type SignupFormData = z.infer<typeof formSchema>;
 
 export default function SignupForm() {
   const [error, setError] = useState("");
-  const { register, handleSubmit } = useForm<SignupFormData>({
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormData>({
     resolver: zodResolver(formSchema),
   });
 
   const onSubmit = async (data: SignupFormData) => {
+    setIsLoading(true);
     const res = await fetch("/api/auth/signup", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
@@ -31,37 +64,148 @@ export default function SignupForm() {
     } else {
       window.location.href = "/auth/login";
     }
+    setIsLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-[300px]">
-      <h2 className="text-2xl font-bold">Sign Up</h2>
+    <Card className="w-full max-w-md mx-auto shadow-lg">
+      <CardHeader className="space-y-4 text-center">
+        <div className="flex justify-center">
+          <div className="p-3 bg-primary/10 rounded-full">
+            <Crown className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <CardTitle className="text-2xl font-bold">Join ChessHub</CardTitle>
+          <CardDescription>
+            Create your account and start playing
+          </CardDescription>
+        </div>
+      </CardHeader>
 
-      <input
-        {...register("email")}
-        placeholder="Email"
-        className="w-full p-2 border"
-      />
-      <input
-        {...register("username")}
-        placeholder="Username"
-        className="w-full p-2 border"
-      />
-      <input
-        type="password"
-        {...register("password")}
-        placeholder="Password"
-        className="w-full p-2 border"
-      />
+      <CardContent className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email Field */}
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium">
+              Email Address
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                className={`pl-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                {...register("email")}
+              />
+            </div>
+            {errors.email && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.email.message}
+              </p>
+            )}
+          </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+          {/* Username Field */}
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium">
+              Username
+            </Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="username"
+                type="text"
+                placeholder="Choose a username"
+                className={`pl-10 ${errors.username ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                {...register("username")}
+              />
+            </div>
+            {errors.username && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.username.message}
+              </p>
+            )}
+          </div>
 
-      <button
-        type="submit"
-        className="w-full bg-blue-500 text-white py-2 rounded"
-      >
-        Sign Up
-      </button>
-    </form>
+          {/* Password Field */}
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium">
+              Password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                className={`pl-10 pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Submit Button */}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              "Sign Up"
+            )}
+          </Button>
+        </form>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Or</span>
+          </div>
+        </div>
+
+        {/* Sign In Link */}
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Already have an account?
+          </p>
+          <Button variant="outline" asChild className="w-full bg-transparent">
+            <Link href="/auth/login">Sign In</Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

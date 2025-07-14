@@ -8,24 +8,28 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  gamesAsWhite Game[] @relation("WhitePlayer")
-  gamesAsBlack Game[] @relation("BlackPlayer")
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  password     String
+  rating       Int      @default(1200)
+  gamesAsWhite Game[]   @relation("WhitePlayer")
+  gamesAsBlack Game[]   @relation("BlackPlayer")
+  createdAt    DateTime @default(now())
 }
 
 model Game {
-  id           String   @id @default(uuid())
-  playerWhite  User     @relation("WhitePlayer", fields: [playerWhiteId], references: [id])
-  playerWhiteId String
+  id             String   @id @default(uuid())
+  playerWhite    User     @relation("WhitePlayer", fields: [playerWhiteId], references: [id])
+  playerWhiteId  String
 
-  playerBlack  User     @relation("BlackPlayer", fields: [playerBlackId], references: [id])
-  playerBlackId String
+  playerBlack    User     @relation("BlackPlayer", fields: [playerBlackId], references: [id])
+  playerBlackId  String
 
-  result       String?
-  moves        Json
-  createdAt    DateTime @default(now())
+  result         String?  // "white", "black", "draw", or null
+  ratingChange   Int?     // positive/negative rating impact for the player
+  moves          Json
+  type           String   // "vsAI", "multiplayer", "tournament", etc.
+  duration       Int?     // game time in seconds
+  createdAt      DateTime @default(now())
 }
