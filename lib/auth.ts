@@ -10,6 +10,9 @@ export async function getUserFromCookie() {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
+      username: string;
+      rating: number;
+      email: string;
     };
     return payload;
   } catch {

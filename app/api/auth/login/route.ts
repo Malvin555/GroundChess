@@ -13,9 +13,16 @@ export async function POST(req: Request) {
     const valid = await compare(password, user.password);
     if (!valid) return new Response("Invalid credentials", { status: 401 });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    });
+    // ✅ Include username & rating in token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        rating: user.rating,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" },
+    );
 
     const response = NextResponse.json({ username: user.username });
 

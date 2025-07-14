@@ -1,26 +1,29 @@
-import DashboardClient from "@/components/pages/dashboard/dashboard";
-import { getUserFromCookie } from "@/lib/auth";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserFromCookie } from "@/lib/auth";
 import { difficultyToLevel } from "@/lib/utils";
 
-export default async function DashboardPage() {
+export const runtime = "nodejs";
+
+export async function GET() {
   const user = await getUserFromCookie();
-
-  const userData = user
-    ? {
-        id: user.userId,
-        username: user.username,
-        rating: user.rating,
-      }
-    : undefined;
-
-  if (!user) return <div className="p-8">Unauthorized</div>;
+  if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const games = await prisma.game.findMany({
     where: {
       OR: [{ playerWhiteId: user.userId }, { playerBlackId: user.userId }],
     },
     orderBy: { createdAt: "desc" },
+    select: {
+      playerWhiteId: true,
+      playerBlackId: true,
+      result: true,
+      ratingChange: true,
+      createdAt: true,
+      type: true,
+      duration: true,
+      difficulty: true, // ✅ Include this
+    },
   });
 
   const totalGames = games.length;
@@ -33,7 +36,7 @@ export default async function DashboardPage() {
   const totalDuration = games.reduce((sum, g) => sum + (g.duration ?? 0), 0);
   const averageTime = totalGames ? Math.round(totalDuration / totalGames) : 0;
 
-  const initialGames = games.slice(0, 5).map((game) => {
+  const recentGames = games.slice(0, 5).map((game) => {
     const isWhite = game.playerWhiteId === user.userId;
     const won =
       (isWhite && game.result === "white") ||
@@ -56,19 +59,16 @@ export default async function DashboardPage() {
       opponent,
       result,
       rating,
-      time: game.createdAt.toISOString(),
+      time: game.createdAt,
     };
   });
 
-  return (
-    <DashboardClient
-      stats={{
-        totalGames,
-        winRate: Math.round((wins / totalGames) * 100),
-        averageTime,
-      }}
-      user={userData}
-      initialGames={initialGames}
-    />
-  );
+  return NextResponse.json({
+    stats: {
+      totalGames,
+      winRate: totalGames ? Math.round((wins / totalGames) * 100) : 0,
+      averageTime,
+    },
+    recentGames,
+  });
 }

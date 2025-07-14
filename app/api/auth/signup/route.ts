@@ -2,17 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { hash } from "bcrypt";
 
 function isValidEmail(email: string): boolean {
-  // Simple email regex for demonstration
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function isValidUsername(username: string): boolean {
-  // Username: 3-20 chars, alphanumeric and underscores
   return /^[a-zA-Z0-9_]{3,20}$/.test(username);
 }
 
 function isValidPassword(password: string): boolean {
-  // Password: at least 8 chars, at least one letter and one number
   return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/.test(
     password,
   );
@@ -29,7 +26,7 @@ export async function POST(req: Request) {
     let body;
     try {
       body = await req.json();
-    } catch (err) {
+    } catch {
       return new Response("Invalid JSON body", { status: 400 });
     }
 
@@ -38,7 +35,9 @@ export async function POST(req: Request) {
     if (!email || !username || !password) {
       return new Response(
         "Missing fields: email, username, and password are required",
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
@@ -49,7 +48,9 @@ export async function POST(req: Request) {
     if (!isValidUsername(username)) {
       return new Response(
         "Invalid username: 3-20 chars, alphanumeric or underscores only",
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
@@ -60,17 +61,11 @@ export async function POST(req: Request) {
       );
     }
 
-    let userExists;
-    try {
-      userExists = await prisma.user.findFirst({
-        where: {
-          OR: [{ email }, { username }],
-        },
-      });
-    } catch (err) {
-      console.error("Database error during user existence check:", err);
-      return new Response("Database error", { status: 500 });
-    }
+    const userExists = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username }],
+      },
+    });
 
     if (userExists) {
       if (userExists.email === email) {
@@ -82,33 +77,15 @@ export async function POST(req: Request) {
       return new Response("User already exists", { status: 409 });
     }
 
-    let hashedPassword;
-    try {
-      hashedPassword = await hash(password, 10);
-    } catch (err) {
-      console.error("Password hashing error:", err);
-      return new Response("Error processing password", { status: 500 });
-    }
+    const hashedPassword = await hash(password, 10);
 
-    let user;
-    try {
-      user = await prisma.user.create({
-        data: {
-          email,
-          username,
-          password: hashedPassword,
-        },
-      });
-    } catch (err: any) {
-      console.error("Database error during user creation:", err);
-      if (err.code === "P2002") {
-        // Prisma unique constraint failed
-        return new Response("User with this email or username already exists", {
-          status: 409,
-        });
-      }
-      return new Response("Database error", { status: 500 });
-    }
+    const user = await prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+      },
+    });
 
     return new Response(
       JSON.stringify({ id: user.id, username: user.username }),
@@ -117,7 +94,7 @@ export async function POST(req: Request) {
         headers: { "Content-Type": "application/json" },
       },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Signup API Error:", error);
     return new Response("Internal Server Error", { status: 500 });
   }

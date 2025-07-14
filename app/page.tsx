@@ -85,7 +85,7 @@ export default function HomePage() {
           >
             <Link href="/game/vs-bot">
               <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-              Try Demo
+              See More
             </Link>
           </Button>
         </div>

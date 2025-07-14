@@ -31,5 +31,6 @@ model Game {
   moves          Json
   type           String   // "vsAI", "multiplayer", "tournament", etc.
   duration       Int?     // game time in seconds
+  difficulty     String?
   createdAt      DateTime @default(now())
 }

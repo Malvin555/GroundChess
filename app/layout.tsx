@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/ui/navbar";
-import { getUserFromCookie } from "@/lib/auth"; // 👈 make sure this exists
+import { getUserFromCookie } from "@/lib/auth";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,14 +17,22 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getUserFromCookie(); // 👈 read cookie on server
-  const isLoggedIn = !!user;
+  const userData = await getUserFromCookie();
+  const isLoggedIn = !!userData;
+
+  const user = userData
+    ? {
+        id: userData.userId,
+        username: userData.username,
+        rating: userData.rating,
+      }
+    : undefined;
 
   return (
     <html lang="en">
       <body className={inter.className}>
         <div className="min-h-screen bg-background">
-          <Navbar isLoggedIn={isLoggedIn} />
+          <Navbar isLoggedIn={isLoggedIn} user={user} />
           <main className="relative overflow-hidden">
             <div className="relative container mx-auto px-4 space-y-24 py-8">
               {children}

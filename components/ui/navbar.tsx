@@ -27,9 +27,14 @@ import { Badge } from "@/components/ui/badge";
 
 type NavbarProps = {
   isLoggedIn: boolean;
+  user?: {
+    id: string;
+    username?: string;
+    rating?: number;
+  };
 };
 
-export function Navbar({ isLoggedIn }: NavbarProps) {
+export function Navbar({ isLoggedIn, user }: NavbarProps) {
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/auth/login";
@@ -100,8 +105,8 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
                         <User className="h-4 w-4" />
                         <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-background" />
                       </div>
-                      <span className="hidden sm:inline font-medium">
-                        Player
+                      <span className="hidden sm:inline font-medium capitalize">
+                        {user?.username ?? "Player"}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
@@ -109,9 +114,11 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
                     <div className="flex items-center space-x-2 p-2 mb-2 bg-accent/30 rounded-lg">
                       <UserCircle className="h-8 w-8 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium">Chess Player</p>
+                        <p className="text-sm font-medium capitalize">
+                          {user?.username ?? "Player"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Rating: 1200
+                          {user?.rating ?? "Null"}
                         </p>
                       </div>
                     </div>
