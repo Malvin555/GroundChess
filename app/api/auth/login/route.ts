@@ -26,7 +26,8 @@ export async function POST(req: Request) {
     );
 
     // ✅ Set cookie using Next.js API (works reliably)
-    cookies().set("token", token, {
+    const cookieStore = await cookies();
+    cookieStore.set("token", token, {
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",

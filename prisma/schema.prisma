@@ -3,36 +3,40 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // Assuming PostgreSQL based on Neon/Supabase context
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique
-  password     String
-  rating       Int      @default(1200)
-  gamesAsWhite Game[]   @relation("WhitePlayer")
-  gamesAsBlack Game[]   @relation("BlackPlayer")
-  createdAt    DateTime @default(now())
+  id          String @id @default(cuid())
+  username    String @unique
+  email       String @unique
+  password    String
+  rating      Int    @default(1200)
+
+  whiteGames  Game[] @relation("WhiteGames")
+  blackGames  Game[] @relation("BlackGames")
 }
 
 model Game {
-  id             String   @id @default(uuid())
+  id            String    @id @default(cuid())
+  gameId        String    @unique // Unique ID for the game session, used in URL
+  playerWhiteId String?   // Nullable until a player joins
+  type          String?    // "public", "private", "rated", "casual"
+  playerBlackId String?   // Nullable until a player joins
+  winnerId      String?   // ID of the winning player
+  loserId       String?   // ID of the losing player
+  draw          Boolean?
+  status        String    // "waiting", "playing", "finished", "abandoned"
+  currentTurn   String?   // "white" or "black" - only relevant when playing
+  fen           String?   // Current FEN string - only relevant when playing
+  moves         Json      @default("[]") // Array of moves
+  duration      Int?      // Total duration in seconds
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  createdAt     DateTime  @default(now()) // Added createdAt field
+  ratingChange  Int?      // Rating change after game end
 
-  playerWhiteId  String
-  playerWhite    User     @relation("WhitePlayer", fields: [playerWhiteId], references: [id])
-
-  playerBlackId  String?  // Make the foreign key optional
-  playerBlack    User?    @relation("BlackPlayer", fields: [playerBlackId], references: [id])
-
-  result         String?  // "white", "black", "draw", or null
-  ratingChange   Int?     // positive/negative rating impact for the player
-  moves          Json
-  type           String   // "vsAI", "multiplayer", etc.
-  duration       Int?     // Duration in seconds
-  difficulty     String?  // Optional for multiplayer/AI
-
-  createdAt      DateTime @default(now())
+  playerWhite   User?     @relation("WhiteGames", fields: [playerWhiteId], references: [id])
+  playerBlack   User?     @relation("BlackGames", fields: [playerBlackId], references: [id])
 }

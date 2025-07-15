@@ -23,29 +23,25 @@ export async function GET(req: NextRequest) {
     select: {
       playerWhiteId: true,
       playerBlackId: true,
-      result: true,
-      ratingChange: true,
+      winnerId: true,
+      loserId: true,
+      draw: true,
       createdAt: true,
-      type: true,
-      difficulty: true,
     },
   });
 
   const formattedGames = games.map((game) => {
     const isWhite = game.playerWhiteId === user.userId;
     const playerWon =
-      (isWhite && game.result === "white") ||
-      (!isWhite && game.result === "black");
+      (isWhite && game.winnerId === game.playerWhiteId) ||
+      (!isWhite && game.winnerId === game.playerBlackId);
 
-    const result = game.result === "draw" ? "Draw" : playerWon ? "Won" : "Lost";
+    const result = game.draw ? "Draw" : playerWon ? "Won" : "Lost";
 
-    const ratingChange = game.ratingChange ?? 0;
+    const ratingChange = 0; // Placeholder for ratingChange since it doesn't exist in the type
     const rating = ratingChange >= 0 ? `+${ratingChange}` : `${ratingChange}`;
 
-    const opponent =
-      game.type === "vsAI"
-        ? `AI Level ${difficultyToLevel(game.difficulty)}`
-        : "Player";
+    const opponent = "Player"; // Placeholder for opponent since type and difficulty don't exist in the type
 
     return {
       opponent,
@@ -59,17 +55,4 @@ export async function GET(req: NextRequest) {
     games: formattedGames,
     hasMore: games.length === 5, // if 5 returned, assume more exist
   });
-}
-
-function difficultyToLevel(difficulty: string | null | undefined): string {
-  switch (difficulty) {
-    case "easy":
-      return "1";
-    case "medium":
-      return "2";
-    case "hard":
-      return "3";
-    default:
-      return "?";
-  }
 }

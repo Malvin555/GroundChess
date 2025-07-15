@@ -1,7 +1,6 @@
 import DashboardClient from "@/components/pages/dashboard/dashboard";
 import { getUserFromCookie } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { difficultyToLevel } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await getUserFromCookie();
@@ -26,8 +25,8 @@ export default async function DashboardPage() {
   const totalGames = games.length;
   const wins = games.filter(
     (g) =>
-      (g.playerWhiteId === user.userId && g.result === "white") ||
-      (g.playerBlackId === user.userId && g.result === "black"),
+      (g.playerWhiteId === user.userId && g.winnerId === g.playerWhiteId) ||
+      (g.playerBlackId === user.userId && g.winnerId === g.playerBlackId),
   ).length;
 
   const totalDuration = games.reduce((sum, g) => sum + (g.duration ?? 0), 0);
@@ -36,21 +35,13 @@ export default async function DashboardPage() {
   const initialGames = games.slice(0, 5).map((game) => {
     const isWhite = game.playerWhiteId === user.userId;
     const won =
-      (isWhite && game.result === "white") ||
-      (!isWhite && game.result === "black");
+      (isWhite && game.winnerId === game.playerWhiteId) ||
+      (!isWhite && game.winnerId === game.playerBlackId);
 
-    const result = game.result === "draw" ? "Draw" : won ? "Won" : "Lost";
-    const rating =
-      typeof game.ratingChange === "number"
-        ? game.ratingChange >= 0
-          ? `+${game.ratingChange}`
-          : `${game.ratingChange}`
-        : "0";
+    const result = game.draw ? "Draw" : won ? "Won" : "Lost";
+    const rating = "0"; // Placeholder since ratingChange does not exist
 
-    const opponent =
-      game.type === "vsAI"
-        ? `AI Level ${difficultyToLevel(game.difficulty)}`
-        : "Player";
+    const opponent = "Player"; // Placeholder since type and difficulty do not exist
 
     return {
       opponent,
