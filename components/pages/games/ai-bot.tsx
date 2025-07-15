@@ -181,7 +181,8 @@ export default function VsBotPage() {
   const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const searchParams = useSearchParams();
-  const level = (searchParams && searchParams.get("level")) ?? selectedDifficulty;
+  const level =
+    (searchParams && searchParams.get("level")) ?? selectedDifficulty;
   const difficulty =
     difficultyConfig[level as keyof typeof difficultyConfig] ||
     difficultyConfig.medium;

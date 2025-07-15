@@ -23,10 +23,12 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      userId: dbUser.id,
-      username: dbUser.username,
-      email: dbUser.email,
-      rating: dbUser.rating,
+      user: {
+        id: dbUser.id,
+        username: dbUser.username,
+        email: dbUser.email,
+        rating: dbUser.rating,
+      },
     });
   } catch (error) {
     console.error("Error fetching user data:", error);

@@ -20,17 +20,19 @@ model User {
 
 model Game {
   id             String   @id @default(uuid())
-  playerWhite    User     @relation("WhitePlayer", fields: [playerWhiteId], references: [id])
-  playerWhiteId  String
 
-  playerBlack    User     @relation("BlackPlayer", fields: [playerBlackId], references: [id])
-  playerBlackId  String
+  playerWhiteId  String
+  playerWhite    User     @relation("WhitePlayer", fields: [playerWhiteId], references: [id])
+
+  playerBlackId  String?  // Make the foreign key optional
+  playerBlack    User?    @relation("BlackPlayer", fields: [playerBlackId], references: [id])
 
   result         String?  // "white", "black", "draw", or null
   ratingChange   Int?     // positive/negative rating impact for the player
   moves          Json
-  type           String   // "vsAI", "multiplayer", "tournament", etc.
-  duration       Int?     // game time in seconds
-  difficulty     String?
+  type           String   // "vsAI", "multiplayer", etc.
+  duration       Int?     // Duration in seconds
+  difficulty     String?  // Optional for multiplayer/AI
+
   createdAt      DateTime @default(now())
 }

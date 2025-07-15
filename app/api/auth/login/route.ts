@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers"; // ✅ import cookies()
 
 export async function POST(req: Request) {
   try {
@@ -13,27 +14,27 @@ export async function POST(req: Request) {
     const valid = await compare(password, user.password);
     if (!valid) return new Response("Invalid credentials", { status: 401 });
 
-    // ✅ Include username & rating in token
     const token = jwt.sign(
       {
         userId: user.id,
         username: user.username,
         rating: user.rating,
+        email: user.email, // ✅ include email (your `/api/game/create` uses this)
       },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" },
     );
 
-    const response = NextResponse.json({ username: user.username });
+    // ✅ Set cookie using Next.js API (works reliably)
+    cookies().set("token", token, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+    });
 
-    response.headers.set(
-      "Set-Cookie",
-      `token=${token}; Path=/; HttpOnly; Max-Age=604800; SameSite=Strict; ${
-        process.env.NODE_ENV === "production" ? "Secure;" : ""
-      }`,
-    );
-
-    return response;
+    return NextResponse.json({ username: user.username });
   } catch (err) {
     console.error("Login error:", err);
     return new Response("Internal Server Error", { status: 500 });

@@ -30,5 +30,20 @@ export async function POST() {
     },
   });
 
+  const existingGame = await prisma.game.findFirst({
+    where: {
+      type: "multiplayer",
+      result: null,
+      OR: [{ playerWhiteId: dbUser.id }, { playerBlackId: dbUser.id }],
+    },
+  });
+
+  if (existingGame) {
+    return NextResponse.json(
+      { gameId: existingGame.id, userId: dbUser.id },
+      { status: 200 },
+    );
+  }
+
   return NextResponse.json({ gameId: game.id }, { status: 201 });
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Crown,
@@ -44,7 +44,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
     <nav className="border-b bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 lg:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Enhanced Logo */}
+          {/* Logo */}
           <Link
             href="/"
             className="flex items-center space-x-3 group hover:scale-105 transition-transform duration-200"
@@ -63,7 +63,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
             </div>
           </Link>
 
-          {/* Enhanced Desktop Navigation */}
+          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-1">
             <NavLink href="/" icon={Home}>
               Home
@@ -89,9 +89,9 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
             )}
           </div>
 
-          {/* Enhanced Auth Section */}
+          {/* Auth Section */}
           <div className="flex items-center space-x-3">
-            {isLoggedIn && (
+            {isLoggedIn ? (
               <>
                 {/* User Dropdown */}
                 <DropdownMenu>
@@ -123,15 +123,6 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                       </div>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center space-x-2"
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
                       <UserCircle className="h-4 w-4 mr-2" />
                       Profile
@@ -151,7 +142,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Enhanced Mobile Menu */}
+                {/* Mobile Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild className="lg:hidden">
                     <Button
@@ -164,7 +155,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64 p-2">
                     <div className="space-y-1">
-                      <DropdownMenuItem asChild className="cursor-pointer">
+                      <DropdownMenuItem asChild>
                         <Link
                           href="/"
                           className="flex items-center space-x-3 p-2"
@@ -173,7 +164,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                           <span>Home</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="cursor-pointer">
+                      <DropdownMenuItem asChild>
                         <Link
                           href="/dashboard"
                           className="flex items-center space-x-3 p-2"
@@ -182,7 +173,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                           <span>Dashboard</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="cursor-pointer">
+                      <DropdownMenuItem asChild>
                         <Link
                           href="/game/vs-bot"
                           className="flex items-center space-x-3 p-2"
@@ -197,7 +188,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                           </Badge>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="cursor-pointer">
+                      <DropdownMenuItem asChild>
                         <Link
                           href="/game/vs-player"
                           className="flex items-center space-x-3 p-2"
@@ -213,8 +204,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            )}
-            {!isLoggedIn && (
+            ) : (
               <>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/auth/login">Login</Link>
@@ -231,7 +221,6 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
   );
 }
 
-// Enhanced NavLink Component
 function NavLink({
   href,
   children,
@@ -241,12 +230,23 @@ function NavLink({
   children: React.ReactNode;
   icon: React.ElementType;
 }) {
+  const pathname = usePathname() ?? "";
+  const isActive = pathname === href || pathname.startsWith(href + "/");
+
   return (
     <Link
       href={href}
-      className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all duration-200 group"
+      className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group ${
+        isActive
+          ? "text-primary bg-accent"
+          : "text-muted-foreground hover:text-primary hover:bg-accent/50"
+      }`}
     >
-      <Icon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+      <Icon
+        className={`h-4 w-4 transition-transform duration-200 ${
+          isActive ? "text-primary" : "group-hover:scale-110"
+        }`}
+      />
       <span>{children}</span>
     </Link>
   );

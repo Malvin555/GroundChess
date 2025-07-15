@@ -1,6 +1,7 @@
-import { io } from "socket.io-client";
+// /lib/socket-client.ts
+import { io, Socket } from "socket.io-client";
 
-let socket: ReturnType<typeof io> | null = null;
+let socket: Socket | null = null;
 
 export function getSocket() {
   if (!socket) {
@@ -8,5 +9,6 @@ export function getSocket() {
       path: "/api/socket",
     });
   }
+
   return socket;
 }

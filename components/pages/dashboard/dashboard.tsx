@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Card,
   CardContent,
@@ -6,6 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +27,8 @@ import {
   Play,
 } from "lucide-react";
 import Link from "next/link";
-
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Game = {
   opponent: string;
@@ -46,64 +55,59 @@ export default function DashboardClient({
   const [recentGames, setRecentGames] = useState(initialGames);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [roomCode, setRoomCode] = useState("");
+
+  const router = useRouter();
 
   const loadGames = async (offset: number) => {
     setLoadingMore(true);
-
     try {
       const res = await fetch(`/api/profile/more-games?offset=${offset}`);
-
-      if (!res.ok) {
-        console.error("Failed to fetch more games:", await res.text());
-        setLoadingMore(false);
-        return;
-      }
-
       const data = await res.json();
-
-      if (!data.games) {
-        console.error("Response missing games:", data);
-        setLoadingMore(false);
-        return;
+      if (data.games) {
+        setRecentGames((prev) => [...prev, ...data.games]);
+        setHasMore(data.hasMore);
       }
-
-      setRecentGames((prev) => [...prev, ...data.games]);
-      setHasMore(data.hasMore);
     } catch (err) {
       console.error("Error loading games:", err);
     }
-
     setLoadingMore(false);
+  };
+
+  const handleJoinRoom = () => {
+    if (roomCode.trim()) {
+      router.push(`/game/vs-player/${roomCode.trim()}`);
+    }
+  };
+
+  const handleCreateRoom = () => {
+    const randomCode = Math.random().toString(36).substring(2, 8);
+    router.push(`/game/vs-player/${randomCode}`);
   };
 
   return (
     <>
       {/* Welcome Section */}
       <div className="mb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Welcome back,
-              <span className="capitalize">{user?.username ?? "Player"}</span>!
-            </h1>
-            <p className="text-muted-foreground">
-              Ready to improve your chess skills today?
-            </p>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold">
+          Welcome back,{" "}
+          <span className="capitalize">{user?.username ?? "Player"}</span>!
+        </h1>
+        <p className="text-muted-foreground">
+          Ready to improve your chess skills today?
+        </p>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-4">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6 text-center space-y-4">
             <Bot className="h-8 w-8 text-blue-500 mx-auto" />
-            <div>
-              <h3 className="font-semibold">Play vs AI</h3>
-              <p className="text-sm text-muted-foreground">
-                Challenge the computer
-              </p>
-            </div>
+            <h3 className="font-semibold">Play vs AI</h3>
+            <p className="text-sm text-muted-foreground">
+              Challenge the computer
+            </p>
             <Button size="sm" className="w-full" asChild>
               <Link href="/game/vs-bot">
                 <Play className="h-4 w-4 mr-2" />
@@ -113,33 +117,56 @@ export default function DashboardClient({
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        {/* Multiplayer - Open Modal */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6 text-center space-y-4">
             <Users className="h-8 w-8 text-green-500 mx-auto" />
-            <div>
-              <h3 className="font-semibold">Multiplayer</h3>
-              <p className="text-sm text-muted-foreground">Play with others</p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full bg-transparent"
-              asChild
-            >
-              <Link href="/game/vs-player">Find Match</Link>
-            </Button>
+            <h3 className="font-semibold">Multiplayer</h3>
+            <p className="text-sm text-muted-foreground">Play with a friend</p>
+            <Dialog open={showMatchModal} onOpenChange={setShowMatchModal}>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full bg-transparent"
+                >
+                  Find Match
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>Join or Create Room</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Enter Room Code"
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value)}
+                  />
+                  <Button className="w-full" onClick={handleJoinRoom}>
+                    Join Room
+                  </Button>
+                  <div className="text-center text-muted-foreground text-xs">
+                    or
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={handleCreateRoom}
+                  >
+                    Create Random Room
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6 text-center space-y-4">
             <Target className="h-8 w-8 text-purple-500 mx-auto" />
-            <div>
-              <h3 className="font-semibold">Training</h3>
-              <p className="text-sm text-muted-foreground">
-                Improve your skills
-              </p>
-            </div>
+            <h3 className="font-semibold">Training</h3>
+            <p className="text-sm text-muted-foreground">Improve your skills</p>
             <Button
               size="sm"
               variant="outline"
@@ -151,13 +178,11 @@ export default function DashboardClient({
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6 text-center space-y-4">
             <Trophy className="h-8 w-8 text-yellow-500 mx-auto" />
-            <div>
-              <h3 className="font-semibold">Tournaments</h3>
-              <p className="text-sm text-muted-foreground">Compete globally</p>
-            </div>
+            <h3 className="font-semibold">Tournaments</h3>
+            <p className="text-sm text-muted-foreground">Compete globally</p>
             <Button
               size="sm"
               variant="outline"
@@ -169,44 +194,20 @@ export default function DashboardClient({
           </CardContent>
         </Card>
       </div>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Games Played</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalGames}</div>
-            <p className="text-xs text-muted-foreground">+12 from last week</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.winRate}%</div>
-            <p className="text-xs text-muted-foreground">+5% from last week</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Game Time
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.floor(stats.averageTime / 60)}m {stats.averageTime % 60}s
-            </div>
-            <p className="text-xs text-muted-foreground">-2m from last week</p>
-          </CardContent>
-        </Card>
+        <StatCard title="Games Played" value={stats.totalGames} Icon={Trophy} />
+        <StatCard
+          title="Win Rate"
+          value={`${stats.winRate}%`}
+          Icon={TrendingUp}
+        />
+        <StatCard
+          title="Average Game Time"
+          value={`${Math.floor(stats.averageTime / 60)}m ${stats.averageTime % 60}s`}
+          Icon={Clock}
+        />
       </div>
 
       {/* Recent Games */}
@@ -257,7 +258,6 @@ export default function DashboardClient({
                 </div>
               </div>
             ))}
-
             {hasMore && (
               <div className="text-center pt-4">
                 <Button
@@ -272,5 +272,29 @@ export default function DashboardClient({
         </CardContent>
       </Card>
     </>
+  );
+}
+
+// StatCard helper
+function StatCard({
+  title,
+  value,
+  Icon,
+}: {
+  title: string;
+  value: string | number;
+  Icon: React.ElementType;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">Updated recently</p>
+      </CardContent>
+    </Card>
   );
 }
