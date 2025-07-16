@@ -31,15 +31,23 @@ export async function POST(req: Request) {
   const base = RATING_CHANGE[difficulty] ?? 100;
   let ratingChange = 0;
 
-  if (result === playerColor) ratingChange = base;
-  else if (result === "draw") ratingChange = 0;
-  else ratingChange = -Math.floor(base / 2);
+  if (result === playerColor) {
+    ratingChange = base;
+  } else if (result === "draw") {
+    ratingChange = 0;
+  } else {
+    ratingChange = -Math.floor(base / 2);
+  }
 
   try {
     const game = await prisma.game.create({
       data: {
-        playerWhiteId: playerColor === "white" ? user.userId : "BOT",
-        playerBlackId: playerColor === "black" ? user.userId : "BOT",
+        playerWhite: {
+          connect: { id: playerColor === "white" ? user.userId : "BOT" },
+        },
+        playerBlack: {
+          connect: { id: playerColor === "black" ? user.userId : "BOT" },
+        },
         winnerId:
           result === "white"
             ? playerColor === "white"
@@ -66,6 +74,9 @@ export async function POST(req: Request) {
         type,
         duration,
         ratingChange,
+        difficulty, // Ensure difficulty is saved
+        gameId: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, // Generate a unique gameId
+        endTime: new Date(), // Set the end time to the current date and time
       },
     });
 

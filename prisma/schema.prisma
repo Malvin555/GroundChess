@@ -8,35 +8,36 @@ datasource db {
 }
 
 model User {
-  id          String @id @default(cuid())
-  username    String @unique
-  email       String @unique
-  password    String
-  rating      Int    @default(1200)
+  id       String @id @default(cuid())
+  username String @unique
+  email    String @unique
+  password String
+  rating   Int    @default(1200)
 
-  whiteGames  Game[] @relation("WhiteGames")
-  blackGames  Game[] @relation("BlackGames")
+  whiteGames Game[] @relation("WhiteGames")
+  blackGames Game[] @relation("BlackGames")
 }
 
 model Game {
   id            String    @id @default(cuid())
   gameId        String    @unique // Unique ID for the game session, used in URL
-  playerWhiteId String?   // Nullable until a player joins
-  type          String?    // "public", "private", "rated", "casual"
-  playerBlackId String?   // Nullable until a player joins
-  winnerId      String?   // ID of the winning player
-  loserId       String?   // ID of the losing player
+  playerWhiteId String? // Nullable until a player joins
+  type          String? // "public", "private", "rated", "casual"
+  playerBlackId String? // Nullable until a player joins
+  winnerId      String? // ID of the winning player
+  loserId       String? // ID of the losing player
   draw          Boolean?
-  status        String    // "waiting", "playing", "finished", "abandoned"
-  currentTurn   String?   // "white" or "black" - only relevant when playing
-  fen           String?   // Current FEN string - only relevant when playing
+  status        String // "waiting", "playing", "finished", "abandoned"
+  currentTurn   String? // "white" or "black" - only relevant when playing
+  fen           String? // Current FEN string - only relevant when playing
   moves         Json      @default("[]") // Array of moves
-  duration      Int?      // Total duration in seconds
+  duration      Int? // Total duration in seconds
   startTime     DateTime  @default(now())
   endTime       DateTime?
   createdAt     DateTime  @default(now()) // Added createdAt field
-  ratingChange  Int?      // Rating change after game end
+  ratingChange  Int?
+  difficulty    String // Added difficulty field
 
-  playerWhite   User?     @relation("WhiteGames", fields: [playerWhiteId], references: [id])
-  playerBlack   User?     @relation("BlackGames", fields: [playerBlackId], references: [id])
+  playerWhite User? @relation("WhiteGames", fields: [playerWhiteId], references: [id])
+  playerBlack User? @relation("BlackGames", fields: [playerBlackId], references: [id])
 }

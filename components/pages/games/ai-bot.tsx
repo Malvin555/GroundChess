@@ -56,7 +56,6 @@ const PIECE_VALUES: Record<string, number> = {
 function evaluateBoard(game: Chess): number {
   const [position] = game.fen().split(" ");
   let score = 0;
-
   // Material evaluation
   for (const char of position) {
     if (char === "/" || !isNaN(Number(char))) continue;
@@ -64,16 +63,13 @@ function evaluateBoard(game: Chess): number {
     const pieceValue = PIECE_VALUES[char.toLowerCase()] || 0;
     score += (isWhite ? 1 : -1) * pieceValue;
   }
-
   // Add positional bonuses
   const moves = game.moves({ verbose: true });
   score += moves.length * 0.1; // Mobility bonus
-
   // King safety (simplified)
   if (game.inCheck()) {
     score += game.turn() === "w" ? -0.5 : 0.5;
   }
-
   return score;
 }
 
@@ -87,7 +83,6 @@ function minimax(
   if (depth === 0 || game.isGameOver()) {
     return { score: evaluateBoard(game) };
   }
-
   const moves = game.moves({ verbose: true });
   let bestMove: Move | undefined;
 
@@ -169,9 +164,8 @@ export default function VsBotPage() {
   const [showResult, setShowResult] = useState(false);
   const [ratingChange, setRatingChange] = useState(0);
   const [gameTime, setGameTime] = useState(0);
-  const [moveHistory, setMoveHistory] = useState<string[]>([]);
+  const [moveHistory, setMoveHistory] = useState<string[]>(game.history()); // Initialize with game history
   const [selectedDifficulty, setSelectedDifficulty] = useState("medium");
-
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(
     null,
   );
@@ -189,7 +183,8 @@ export default function VsBotPage() {
 
   // Game timer
   useEffect(() => {
-    if (gameStarted && !game.isGameOver()) {
+    // Stop timer if game is over OR if player has given up
+    if (gameStarted && !game.isGameOver() && !hasGivenUp) {
       gameTimerRef.current = setInterval(() => {
         setGameTime((prev) => prev + 1);
       }, 1000);
@@ -198,13 +193,12 @@ export default function VsBotPage() {
         clearInterval(gameTimerRef.current);
       }
     }
-
     return () => {
       if (gameTimerRef.current) {
         clearInterval(gameTimerRef.current);
       }
     };
-  }, [gameStarted, game]);
+  }, [gameStarted, game, hasGivenUp]); // Added hasGivenUp to dependencies
 
   // Countdown timer
   useEffect(() => {
@@ -232,12 +226,12 @@ export default function VsBotPage() {
       const base =
         difficultyRatingMap[level as keyof typeof difficultyRatingMap] || 100;
       setRatingChange(playerWon ? base : -Math.floor(base / 2));
-
       // Save game
       fetch("/api/game/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          gameId: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Generate a unique gameId
           result: playerWon
             ? "white"
             : result.includes("Draw")
@@ -247,7 +241,9 @@ export default function VsBotPage() {
           duration,
           moves: game.history({ verbose: true }),
           playerColor: "white",
-          difficulty: level,
+          ratingChange: playerWon ? base : -Math.floor(base / 2),
+          difficulty: level, // Include difficulty
+          endTime: new Date(), // Set the end time to the current date and time
         }),
       }).catch(console.error);
     }
@@ -272,21 +268,21 @@ export default function VsBotPage() {
           return clone;
         });
       },
-      difficulty.thinkTime + Math.random() * 500,
-    ); // Add some randomness to thinking time
+      difficulty.thinkTime + Math.random() * 500, // Add some randomness to thinking time
+    );
   }, [difficulty]);
 
   const onDrop = (source: Square, target: Square): boolean => {
-    if (!gameStarted || game.isGameOver() || isBotThinking) return false;
-
+    // Add !hasGivenUp to the condition
+    if (!gameStarted || game.isGameOver() || isBotThinking || hasGivenUp)
+      return false;
     const clone = new Chess(game.fen());
     try {
       const move = clone.move({ from: source, to: target, promotion: "q" });
       if (!move) return false;
-
       setGame(clone);
+      setMoveHistory(clone.history()); // Update move history
       setLastMove({ from: source, to: target });
-
       if (!clone.isGameOver()) {
         setTimeout(() => makeBotMove(), 100);
       }
@@ -309,7 +305,7 @@ export default function VsBotPage() {
     setShowResult(false);
     setShowCountdown(false);
     setGameTime(0);
-    setMoveHistory([]);
+    setMoveHistory([]); // Reset move history
     setLastMove(null);
     setHasGivenUp(false); // 🔁 RESET here
     startTimeRef.current = null;
@@ -321,6 +317,10 @@ export default function VsBotPage() {
   const handleGiveUp = async () => {
     if (hasGivenUp) return; // prevent second press
     setHasGivenUp(true);
+    // Explicitly stop the timer here
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+    }
 
     const duration = Math.floor(
       (Date.now() - (startTimeRef.current ?? Date.now())) / 1000,
@@ -330,18 +330,22 @@ export default function VsBotPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          result: "black",
+          gameId: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Generate a unique gameId
+          result: "black", // AI wins
           type: "vsAI",
           duration,
           moves: game.history({ verbose: true }),
           playerColor: "white",
-          difficulty: level,
+          ratingChange: -Math.floor(
+            difficultyRatingMap[level as keyof typeof difficultyRatingMap] / 2,
+          ),
+          difficulty: level, // Include difficulty
+          endTime: new Date(), // Set the end time to the current date and time
         }),
       });
     } catch (error) {
       console.error("Failed to save game:", error);
     }
-
     setStatus("You gave up. AI wins.");
     setShowResult(true);
     setRatingChange(
@@ -392,9 +396,9 @@ export default function VsBotPage() {
             <div className="space-y-6">
               {/* Difficulty Selection */}
               {!gameStarted && (
-                <Card>
+                <Card className="border-border">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-muted-foreground">
                       <Target className="h-5 w-5" />
                       Select Difficulty
                     </CardTitle>
@@ -404,7 +408,7 @@ export default function VsBotPage() {
                       value={selectedDifficulty}
                       onValueChange={setSelectedDifficulty}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -430,9 +434,9 @@ export default function VsBotPage() {
               )}
 
               {/* Game Status */}
-              <Card>
+              <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-muted-foreground">
                     <Trophy className="h-5 w-5" />
                     Game Status
                   </CardTitle>
@@ -465,9 +469,9 @@ export default function VsBotPage() {
               </Card>
 
               {/* Players */}
-              <Card>
+              <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-muted-foreground">
                     <User className="h-5 w-5" />
                     Players
                   </CardTitle>
@@ -480,9 +484,8 @@ export default function VsBotPage() {
                     </div>
                     {game.turn() === "w" &&
                       gameStarted &&
-                      !game.isGameOver() && (
-                        <Badge variant="default">Your Turn</Badge>
-                      )}
+                      !game.isGameOver() &&
+                      !hasGivenUp && <Badge variant="default">Your Turn</Badge>}
                   </div>
                   <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -502,24 +505,29 @@ export default function VsBotPage() {
 
             {/* Center - Chess Board */}
             <div className="flex flex-col items-center space-y-6">
-              <Card className="p-4">
+              <Card className="p-4 border-border">
                 <div ref={boardRef}>
                   <Chessboard
                     position={game.fen()}
                     onPieceDrop={onDrop}
                     boardWidth={Math.min(
-                      400,
+                      380,
                       typeof window !== "undefined"
-                        ? window.innerWidth - 100
+                        ? window.innerWidth * 0.7
                         : 500,
                     )}
+                    // Updated arePiecesDraggable to include !hasGivenUp
                     arePiecesDraggable={
-                      gameStarted && !game.isGameOver() && !isBotThinking
+                      gameStarted &&
+                      !game.isGameOver() &&
+                      !isBotThinking &&
+                      !hasGivenUp
                     }
                     boardOrientation="white"
                     customBoardStyle={{
                       borderRadius: "12px",
                       boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                      border: "1px solid hsl(var(--border))",
                     }}
                     customSquareStyles={
                       lastMove
@@ -548,7 +556,7 @@ export default function VsBotPage() {
                   <div className="space-y-2">
                     <p className="text-lg font-medium">
                       {isBotThinking ? (
-                        <span className="flex items-center gap-2 justify-center">
+                        <span className="flex items-center gap-2 justify-center text-muted-foreground">
                           <Brain className="h-4 w-4 animate-pulse" />
                           AI is thinking...
                         </span>
@@ -558,7 +566,7 @@ export default function VsBotPage() {
                           Your move
                         </span>
                       ) : (
-                        <span className="flex items-center gap-2 justify-center">
+                        <span className="flex items-center gap-2 justify-center text-muted-foreground">
                           <Bot className="h-4 w-4" />
                           AI turn
                         </span>
@@ -581,7 +589,6 @@ export default function VsBotPage() {
                     Start Game
                   </Button>
                 )}
-
                 {gameStarted && (
                   <>
                     <Button
@@ -594,6 +601,7 @@ export default function VsBotPage() {
                     </Button>
                     <Button
                       onClick={handleGiveUp}
+                      // Disable if bot is thinking, game is over, or already given up
                       disabled={
                         isBotThinking || game.isGameOver() || hasGivenUp
                       }
@@ -607,11 +615,11 @@ export default function VsBotPage() {
               </div>
             </div>
 
-            {/* Right Sidebar - Move History */}
+            {/* Right Sidebar - Move History & AI Thinking Progress */}
             <div className="space-y-6">
-              <Card>
+              <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-muted-foreground">
                     <Timer className="h-5 w-5" />
                     Move History
                   </CardTitle>
@@ -651,9 +659,9 @@ export default function VsBotPage() {
 
               {/* AI Thinking Progress */}
               {isBotThinking && (
-                <Card>
+                <Card className="border-border">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-sm">
+                    <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Zap className="h-4 w-4" />
                       AI Analysis
                     </CardTitle>
@@ -704,7 +712,7 @@ export default function VsBotPage() {
               <div className="p-4 bg-accent/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Rating Change</p>
                 <p
-                  className={`text-xl font-bold ${ratingChange > 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-xl font-bold ${ratingChange > 0 ? "text-green-600" : "text-destructive"}`}
                 >
                   {ratingChange > 0 ? "+" : ""}
                   {ratingChange}

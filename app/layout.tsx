@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/ui/navbar";
+import { Footer } from "@/components/ui/footer";
 import { getUserFromCookie } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+import { prisma } from "@/lib/prisma"; // ✅ needed
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,25 +20,30 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const userData = await getUserFromCookie();
-  const isLoggedIn = !!userData;
+  const userFromCookie = await getUserFromCookie();
+  const isLoggedIn = !!userFromCookie;
 
-  const user = userData
-    ? {
-        id: userData.userId,
-        username: userData.username,
-        rating: userData.rating,
-      }
-    : undefined;
+  // ✅ fetch latest rating from DB if logged in
+  const dbUser = userFromCookie
+    ? await prisma.user.findUnique({
+        where: { id: userFromCookie.userId },
+        select: {
+          id: true,
+          username: true,
+          rating: true,
+        },
+      })
+    : null;
 
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="bg-background text-foreground">
+      <body className={`${inter.className} bg-background text-foreground`}>
         <div className="min-h-screen bg-background">
-          <Navbar isLoggedIn={isLoggedIn} user={user} />
+          <Navbar isLoggedIn={isLoggedIn} user={dbUser ?? undefined} />
           <main className="relative overflow-hidden">
             <div className="relative container mx-auto px-4 space-y-24 py-8">
               {children}
+              <Footer />
             </div>
           </main>
         </div>

@@ -1,18 +1,16 @@
 "use client";
 
 import type React from "react";
+
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "next/navigation"; // Import usePathname for active link highlighting
 import { Button } from "@/components/ui/button";
 import {
   Crown,
   User,
   LogOut,
-  Menu,
   Home,
   BarChart3,
-  Bot,
-  Users,
   Settings,
   UserCircle,
 } from "lucide-react";
@@ -23,7 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 
 type NavbarProps = {
   isLoggedIn: boolean;
@@ -44,7 +41,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
     <nav className="border-b bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 lg:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo - Changed to GroundChess */}
           <Link
             href="/"
             className="flex items-center space-x-3 group hover:scale-105 transition-transform duration-200"
@@ -55,7 +52,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                ChessHub
+                GroundChess
               </span>
               <span className="text-xs text-muted-foreground -mt-1">
                 Master Your Game
@@ -72,18 +69,6 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
               <>
                 <NavLink href="/dashboard" icon={BarChart3}>
                   Dashboard
-                </NavLink>
-                <NavLink href="/game/vs-bot" icon={Bot}>
-                  vs Bot
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    AI
-                  </Badge>
-                </NavLink>
-                <NavLink href="/game/vs-player" icon={Users}>
-                  Multiplayer
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    Live
-                  </Badge>
                 </NavLink>
               </>
             )}
@@ -118,10 +103,20 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                           {user?.username ?? "Player"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {user?.rating ?? "Null"}
+                          Rating: {user?.rating ?? "Null"}
                         </p>
                       </div>
                     </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center space-x-2"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="cursor-pointer">
                       <UserCircle className="h-4 w-4 mr-2" />
@@ -139,68 +134,6 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                       <LogOut className="h-4 w-4 mr-2" />
                       Logout
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Mobile Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild className="lg:hidden">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hover:bg-accent/50 transition-colors duration-200 p-2"
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 p-2">
-                    <div className="space-y-1">
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/"
-                          className="flex items-center space-x-3 p-2"
-                        >
-                          <Home className="h-4 w-4" />
-                          <span>Home</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/dashboard"
-                          className="flex items-center space-x-3 p-2"
-                        >
-                          <BarChart3 className="h-4 w-4" />
-                          <span>Dashboard</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/game/vs-bot"
-                          className="flex items-center space-x-3 p-2"
-                        >
-                          <Bot className="h-4 w-4" />
-                          <span>Play vs Bot</span>
-                          <Badge
-                            variant="secondary"
-                            className="ml-auto text-xs"
-                          >
-                            AI
-                          </Badge>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/game/vs-player"
-                          className="flex items-center space-x-3 p-2"
-                        >
-                          <Users className="h-4 w-4" />
-                          <span>Multiplayer</span>
-                          <Badge variant="outline" className="ml-auto text-xs">
-                            Live
-                          </Badge>
-                        </Link>
-                      </DropdownMenuItem>
-                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -232,7 +165,6 @@ function NavLink({
 }) {
   const pathname = usePathname() ?? "";
   const isActive = pathname === href || pathname.startsWith(href + "/");
-
   return (
     <Link
       href={href}
@@ -243,9 +175,7 @@ function NavLink({
       }`}
     >
       <Icon
-        className={`h-4 w-4 transition-transform duration-200 ${
-          isActive ? "text-primary" : "group-hover:scale-110"
-        }`}
+        className={`h-4 w-4 transition-transform duration-200 ${isActive ? "text-primary" : "group-hover:scale-110"}`}
       />
       <span>{children}</span>
     </Link>

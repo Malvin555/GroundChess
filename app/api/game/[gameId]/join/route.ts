@@ -43,6 +43,7 @@ export async function POST(
           fen: new Chess().fen(), // Initial FEN
           currentTurn: "white",
           moves: [],
+          difficulty: "multiplayer",
         },
         include: { playerWhite: true, playerBlack: true },
       });

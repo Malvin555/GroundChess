@@ -5,15 +5,19 @@ import { prisma } from "@/lib/prisma";
 export default async function DashboardPage() {
   const user = await getUserFromCookie();
 
-  const userData = user
-    ? {
-        id: user.userId,
-        username: user.username,
-        rating: user.rating,
-      }
-    : undefined;
+  if (!user) return <div className="p-8">Unauthorized</div>; // 👈 Early return
 
-  if (!user) return <div className="p-8">Unauthorized</div>;
+  // 🔄 Always get fresh rating from DB
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: {
+      id: true,
+      username: true,
+      rating: true,
+    },
+  });
+
+  const userData = dbUser ?? undefined;
 
   const games = await prisma.game.findMany({
     where: {
@@ -23,6 +27,7 @@ export default async function DashboardPage() {
   });
 
   const totalGames = games.length;
+
   const wins = games.filter(
     (g) =>
       (g.playerWhiteId === user.userId && g.winnerId === g.playerWhiteId) ||
@@ -39,9 +44,10 @@ export default async function DashboardPage() {
       (!isWhite && game.winnerId === game.playerBlackId);
 
     const result = game.draw ? "Draw" : won ? "Won" : "Lost";
-    const rating = "0"; // Placeholder since ratingChange does not exist
 
-    const opponent = "Player"; // Placeholder since type and difficulty do not exist
+    const rating = (game.ratingChange ?? 0).toString();
+    const opponent =
+      game.type === "vsAI" ? `AI (${game.difficulty})` : "Player";
 
     return {
       opponent,
@@ -55,7 +61,7 @@ export default async function DashboardPage() {
     <DashboardClient
       stats={{
         totalGames,
-        winRate: Math.round((wins / totalGames) * 100),
+        winRate: totalGames ? Math.round((wins / totalGames) * 100) : 0,
         averageTime,
       }}
       user={userData}
