@@ -76,7 +76,7 @@ export default function SignupForm() {
           </div>
         </div>
         <div className="space-y-2">
-          <CardTitle className="text-2xl font-bold">Join ChessHub</CardTitle>
+          <CardTitle className="text-2xl font-bold">Join GroundChess</CardTitle>
           <CardDescription>
             Create your account and start playing
           </CardDescription>

@@ -76,7 +76,7 @@ export default function LoginForm() {
         </div>
         <div className="space-y-2">
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your ChessHub account</CardDescription>
+          <CardDescription>Sign in to your GroundChess account</CardDescription>
         </div>
       </CardHeader>
 
