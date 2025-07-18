@@ -3,19 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromCookie } from "@/lib/auth";
 import { Chess } from "chess.js";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { gameId: string } },
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function POST(req: Request, context: any) {
+  const gameId = context?.params?.gameId;
+
   const user = await getUserFromCookie();
   if (!user) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  // Fix: Await params before destructuring
-  const { gameId } = await params;
   const userId = user.userId;
 
-  console.log("User ID from cookie:", userId); // <--- ADD THIS LINE
+  console.log("User ID from cookie:", userId);
 
   // ✅ Check if user exists to prevent foreign key violation
   const existingUser = await prisma.user.findUnique({

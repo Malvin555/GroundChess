@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Chess, type Square, type Move } from "chess.js";
@@ -43,34 +42,225 @@ import {
   Timer,
 } from "lucide-react";
 
+// Piece-Square Tables (PSTs)
+// Values are for white pieces. For black, the board is flipped vertically.
+const PAWN_PST = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [50, 50, 50, 50, 50, 50, 50, 50],
+  [10, 10, 20, 30, 30, 20, 10, 10],
+  [5, 5, 10, 25, 25, 10, 5, 5],
+  [0, 0, 0, 20, 20, 0, 0, 0],
+  [5, -5, -10, 0, 0, -10, -5, 5],
+  [5, 10, 10, -20, -20, 10, 10, 5],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const KNIGHT_PST = [
+  [-50, -40, -30, -30, -30, -30, -40, -50],
+  [-40, -20, 0, 0, 0, 0, -20, -40],
+  [-30, 0, 10, 15, 15, 10, 0, -30],
+  [-30, 5, 15, 20, 20, 15, 5, -30],
+  [-30, 0, 15, 20, 20, 15, 0, -30],
+  [-30, 5, 10, 15, 15, 10, 5, -30],
+  [-40, -20, 0, 5, 5, 0, -20, -40],
+  [-50, -40, -30, -30, -30, -30, -40, -50],
+];
+
+const BISHOP_PST = [
+  [-20, -10, -10, -10, -10, -10, -10, -20],
+  [-10, 0, 0, 0, 0, 0, 0, -10],
+  [-10, 0, 5, 10, 10, 5, 0, -10],
+  [-10, 5, 5, 10, 10, 5, 5, -10],
+  [-10, 0, 10, 10, 10, 10, 0, -10],
+  [-10, 10, 10, 10, 10, 10, 10, -10],
+  [-10, 5, 0, 0, 0, 0, 5, -10],
+  [-20, -10, -10, -10, -10, -10, -10, -20],
+];
+
+const ROOK_PST = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [5, 10, 10, 10, 10, 10, 10, 5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [0, 0, 0, 5, 5, 0, 0, 0],
+];
+
+const QUEEN_PST = [
+  [-20, -10, -10, -5, -5, -10, -10, -20],
+  [-10, 0, 0, 0, 0, 0, 0, -10],
+  [-10, 0, 5, 5, 5, 5, 0, -10],
+  [-5, 0, 5, 5, 5, 5, 0, -5],
+  [0, 0, 5, 5, 5, 5, 0, -5],
+  [-10, 5, 5, 5, 5, 5, 0, -10],
+  [-10, 0, 5, 0, 0, 0, 0, -10],
+  [-20, -10, -10, -5, -5, -10, -10, -20],
+];
+
+const KING_PST_MIDDLE = [
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-20, -30, -30, -40, -40, -30, -30, -20],
+  [-10, -20, -20, -20, -20, -20, -20, -10],
+  [20, 20, 0, 0, 0, 0, 20, 20],
+  [20, 30, 10, 0, 0, 10, 30, 20],
+];
+
+const KING_PST_END = [
+  [-50, -40, -30, -20, -20, -30, -40, -50],
+  [-30, -20, -10, 0, 0, -10, -20, -30],
+  [-30, -10, 20, 30, 30, 20, -10, -30],
+  [-30, -10, 30, 40, 40, 30, -10, -30],
+  [-30, -10, 30, 40, 40, 30, -10, -30],
+  [-30, -10, 20, 30, 30, 20, -10, -30],
+  [-30, -30, 0, 0, 0, 0, -30, -30],
+  [-50, -30, -30, -30, -30, -30, -30, -50],
+];
+
 const PIECE_VALUES: Record<string, number> = {
-  p: 1,
-  n: 3,
-  b: 3,
-  r: 5,
-  q: 9,
-  k: 0,
+  p: 100,
+  n: 320,
+  b: 330,
+  r: 500,
+  q: 900,
+  k: 20000, // King value is high to represent checkmate
 };
+
+function getPST(pieceType: string, isEndgame: boolean) {
+  switch (pieceType) {
+    case "p":
+      return PAWN_PST;
+    case "n":
+      return KNIGHT_PST;
+    case "b":
+      return BISHOP_PST;
+    case "r":
+      return ROOK_PST;
+    case "q":
+      return QUEEN_PST;
+    case "k":
+      return isEndgame ? KING_PST_END : KING_PST_MIDDLE;
+    default:
+      return null;
+  }
+}
 
 // Enhanced evaluation function
 function evaluateBoard(game: Chess): number {
-  const [position] = game.fen().split(" ");
+  // Check for terminal states first
+  if (game.isCheckmate()) {
+    return game.turn() === "w"
+      ? Number.NEGATIVE_INFINITY
+      : Number.POSITIVE_INFINITY;
+  }
+  if (
+    game.isStalemate() ||
+    game.isThreefoldRepetition() ||
+    game.isInsufficientMaterial()
+  ) {
+    return 0; // Draw
+  }
+
   let score = 0;
-  // Material evaluation
-  for (const char of position) {
-    if (char === "/" || !isNaN(Number(char))) continue;
-    const isWhite = char === char.toUpperCase();
-    const pieceValue = PIECE_VALUES[char.toLowerCase()] || 0;
-    score += (isWhite ? 1 : -1) * pieceValue;
+  const board = game.board();
+
+  let totalQueens = 0;
+  let totalRooks = 0;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (piece) {
+        if (piece.type === "q") totalQueens++;
+        if (piece.type === "r") totalRooks++;
+      }
+    }
   }
-  // Add positional bonuses
-  const moves = game.moves({ verbose: true });
-  score += moves.length * 0.1; // Mobility bonus
-  // King safety (simplified)
+  // Endgame if no queens for either side AND total rooks are low (e.g., 0 or 1)
+  const isEndgame = totalQueens === 0 && totalRooks <= 1;
+
+  let whiteBishops = 0;
+  let blackBishops = 0;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (piece) {
+        const pieceValue = PIECE_VALUES[piece.type];
+        const pst = getPST(piece.type, isEndgame);
+        // Flip row for black pieces to use the same PSTs
+        const row = piece.color === "w" ? r : 7 - r;
+        const col = c;
+
+        let positionalValue = 0;
+        if (pst) {
+          positionalValue = pst[row][col];
+        }
+
+        if (piece.color === "w") {
+          score += pieceValue + positionalValue;
+          if (piece.type === "b") whiteBishops++;
+        } else {
+          score -= pieceValue + positionalValue;
+          if (piece.type === "b") blackBishops++;
+        }
+      }
+    }
+  }
+
+  // Bishop pair bonus
+  if (whiteBishops >= 2) score += 30;
+  if (blackBishops >= 2) score -= 30;
+
+  // Mobility bonus (number of legal moves)
+  score += game.moves().length * 10;
+
+  // Check bonus/penalty
   if (game.inCheck()) {
-    score += game.turn() === "w" ? -0.5 : 0.5;
+    score += game.turn() === "w" ? -50 : 50; // Penalty for being in check
   }
+
   return score;
+}
+
+function quiescenceSearch(game: Chess, alpha: number, beta: number): number {
+  if (game.isGameOver()) {
+    return evaluateBoard(game); // Evaluate terminal state
+  }
+
+  const standPat = evaluateBoard(game);
+
+  if (standPat >= beta) {
+    return beta;
+  }
+  if (alpha < standPat) {
+    alpha = standPat;
+  }
+
+  const moves = game.moves({ verbose: true });
+  // Filter for capture and en passant moves
+  const captureMoves = moves.filter(
+    (move) => move.flags.includes("c") || move.flags.includes("e"),
+  );
+
+  for (const move of captureMoves) {
+    const clone = new Chess(game.fen());
+    clone.move(move);
+    // Negamax principle: score = -score_of_opponent's_best_move
+    const score = -quiescenceSearch(clone, -beta, -alpha);
+
+    if (score >= beta) {
+      return beta;
+    }
+    if (score > alpha) {
+      alpha = score;
+    }
+  }
+  return alpha;
 }
 
 function minimax(
@@ -79,12 +269,30 @@ function minimax(
   isMaximizing: boolean,
   alpha: number,
   beta: number,
-): { score: number; move?: Move } {
-  if (depth === 0 || game.isGameOver()) {
-    return { score: evaluateBoard(game) };
+): { score: number; moves: Move[] } {
+  if (depth === 0) {
+    return { score: quiescenceSearch(game, alpha, beta), moves: [] }; // Call quiescence search at depth 0
   }
+  if (game.isGameOver()) {
+    return { score: evaluateBoard(game), moves: [] }; // Game over, evaluate final board
+  }
+
   const moves = game.moves({ verbose: true });
-  let bestMove: Move | undefined;
+  // Sort moves to improve alpha-beta pruning effectiveness (move ordering)
+  // Simple heuristic: captures first, then checks, then promotions
+  moves.sort((a, b) => {
+    let scoreA = 0;
+    let scoreB = 0;
+    if (a.flags.includes("c") || a.flags.includes("e")) scoreA += 100; // Capture or en passant
+    if (b.flags.includes("c") || b.flags.includes("e")) scoreB += 100;
+    if (a.flags.includes("k")) scoreA += 50; // Check
+    if (b.flags.includes("k")) scoreB += 50;
+    if (a.flags.includes("p")) scoreA += 200; // Promotion
+    if (b.flags.includes("p")) scoreB += 200;
+    return scoreB - scoreA; // Descending order (best moves first)
+  });
+
+  let bestMoves: Move[] = [];
 
   if (isMaximizing) {
     let maxEval = Number.NEGATIVE_INFINITY;
@@ -94,12 +302,14 @@ function minimax(
       const { score } = minimax(clone, depth - 1, false, alpha, beta);
       if (score > maxEval) {
         maxEval = score;
-        bestMove = move;
+        bestMoves = [move]; // New best score, reset bestMoves
+      } else if (score === maxEval) {
+        bestMoves.push(move); // Same score, add to bestMoves
       }
       alpha = Math.max(alpha, score);
       if (beta <= alpha) break; // Alpha-beta pruning
     }
-    return { score: maxEval, move: bestMove };
+    return { score: maxEval, moves: bestMoves };
   } else {
     let minEval = Number.POSITIVE_INFINITY;
     for (const move of moves) {
@@ -108,25 +318,31 @@ function minimax(
       const { score } = minimax(clone, depth - 1, true, alpha, beta);
       if (score < minEval) {
         minEval = score;
-        bestMove = move;
+        bestMoves = [move]; // New best score, reset bestMoves
+      } else if (score === minEval) {
+        bestMoves.push(move); // Same score, add to bestMoves
       }
       beta = Math.min(beta, score);
       if (beta <= alpha) break; // Alpha-beta pruning
     }
-    return { score: minEval, move: bestMove };
+    return { score: minEval, moves: bestMoves };
   }
 }
 
 function getBestMove(game: Chess, depth: number) {
   if (game.turn() !== "b") return null;
-  const { move } = minimax(
+  const { moves } = minimax(
     game,
     depth,
-    false,
+    false, // AI is always minimizing (playing black)
     Number.NEGATIVE_INFINITY,
     Number.POSITIVE_INFINITY,
   );
-  return move || null;
+  // Pick a random move from the best moves
+  if (moves.length > 0) {
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+  return null;
 }
 
 function getGameResult(game: Chess): string | null {
@@ -144,7 +360,7 @@ function getGameResult(game: Chess): string | null {
 const difficultyConfig = {
   easy: { depth: 1, rating: 1200, color: "bg-blue-500", thinkTime: 800 },
   medium: { depth: 2, rating: 1600, color: "bg-yellow-500", thinkTime: 1200 },
-  hard: { depth: 3, rating: 2000, color: "bg-orange-500", thinkTime: 1800 },
+  hard: { depth: 4, rating: 2200, color: "bg-red-500", thinkTime: 2500 }, // Increased depth and rating
 };
 
 const difficultyRatingMap = {
@@ -169,17 +385,23 @@ export default function VsBotPage() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(
     null,
   );
-
   const boardRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<number | null>(null);
   const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const searchParams = useSearchParams();
   const level =
     (searchParams && searchParams.get("level")) ?? selectedDifficulty;
   const difficulty =
     difficultyConfig[level as keyof typeof difficultyConfig] ||
     difficultyConfig.medium;
+
+  // State for promotion dialog
+  const [showPromotionDialog, setShowPromotionDialog] = useState(false);
+  const [promotionDetails, setPromotionDetails] = useState<{
+    from: Square;
+    to: Square;
+    color: "w" | "b";
+  } | null>(null);
 
   // Game timer
   useEffect(() => {
@@ -273,28 +495,111 @@ export default function VsBotPage() {
   }, [difficulty]);
 
   const onDrop = (source: Square, target: Square): boolean => {
-    // Add !hasGivenUp to the condition
     if (!gameStarted || game.isGameOver() || isBotThinking || hasGivenUp)
       return false;
-    const clone = new Chess(game.fen());
+
+    const gameCopy = new Chess(game.fen());
+    const piece = gameCopy.get(source);
+
+    // Check if it's a pawn promotion move
+    const isPromotionAttempt =
+      piece?.type === "p" &&
+      ((piece.color === "w" && target.includes("8")) ||
+        (piece.color === "b" && target.includes("1")));
+
+    if (isPromotionAttempt) {
+      // Find if there's any legal promotion move for this source/target
+      const legalPromotionMoves = gameCopy
+        .moves({ verbose: true })
+        .filter(
+          (m) => m.from === source && m.to === target && m.flags.includes("p"),
+        );
+
+      if (legalPromotionMoves.length > 0) {
+        setPromotionDetails({ from: source, to: target, color: piece.color });
+        setShowPromotionDialog(true);
+        return true; // Accept the drop visually
+      } else {
+        // If no legal promotion moves for this source/target, it's an invalid drop
+        console.error(
+          "Invalid promotion attempt: No legal promotion moves found for",
+          source,
+          "to",
+          target,
+        );
+        return false; // Reject the drop
+      }
+    }
+
+    // If not a promotion attempt, try a regular move
     try {
-      const move = clone.move({ from: source, to: target, promotion: "q" });
-      if (!move) return false;
-      setGame(clone);
-      setMoveHistory(clone.history()); // Update move history
+      const move = gameCopy.move({ from: source, to: target });
+      if (!move) return false; // Move is illegal, piece snaps back
+
+      setGame(gameCopy); // Update game state
+      setMoveHistory(gameCopy.history());
       setLastMove({ from: source, to: target });
-      if (!clone.isGameOver()) {
+
+      if (!gameCopy.isGameOver()) {
         setTimeout(() => makeBotMove(), 100);
       }
-      return true;
-    } catch {
-      return false;
+      return true; // Move was successful
+    } catch (e) {
+      console.error("Invalid regular move:", e);
+      return false; // Move is illegal, piece snaps back
     }
   };
 
+  const handlePromotionSelect = (promotionPiece: "q" | "r" | "b" | "n") => {
+    if (!promotionDetails) return;
+
+    // Use the current game state to apply the promotion move
+    setGame((prevGame) => {
+      const gameCopy = new Chess(prevGame.fen()); // Create a copy from the *previous* state
+      try {
+        const move = gameCopy.move({
+          from: promotionDetails.from,
+          to: promotionDetails.to,
+          promotion: promotionPiece,
+        });
+
+        if (move) {
+          setMoveHistory(gameCopy.history());
+          setLastMove({ from: promotionDetails.from, to: promotionDetails.to });
+          if (!gameCopy.isGameOver()) {
+            setTimeout(() => makeBotMove(), 100);
+          }
+          return gameCopy; // Return the new game state
+        } else {
+          console.error("Failed to apply promotion move after selection.");
+          return prevGame; // Revert to previous state if move fails
+        }
+      } catch (error) {
+        console.error("Error applying promotion move:", error);
+        return prevGame; // Revert to previous state on error
+      } finally {
+        setShowPromotionDialog(false);
+        setPromotionDetails(null);
+      }
+    });
+  };
+
   const handleStart = () => {
+    setGame(new Chess()); // Reset game state on start
+    setStatus(null);
+    setIsBotThinking(false);
+    setGameStarted(false);
+    setShowResult(false);
     setShowCountdown(true);
     setCountdown(3);
+    setGameTime(0);
+    setMoveHistory([]);
+    setLastMove(null);
+    setHasGivenUp(false);
+    startTimeRef.current = null;
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+    }
   };
 
   const handleRestart = () => {
@@ -321,7 +626,6 @@ export default function VsBotPage() {
     if (gameTimerRef.current) {
       clearInterval(gameTimerRef.current);
     }
-
     const duration = Math.floor(
       (Date.now() - (startTimeRef.current ?? Date.now())) / 1000,
     );
@@ -376,7 +680,6 @@ export default function VsBotPage() {
               Challenge our AI and improve your chess skills
             </p>
           </div>
-
           {/* Countdown Overlay */}
           {showCountdown && (
             <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -390,7 +693,6 @@ export default function VsBotPage() {
               </Card>
             </div>
           )}
-
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Left Sidebar - Game Info */}
             <div className="space-y-6">
@@ -432,7 +734,6 @@ export default function VsBotPage() {
                   </CardContent>
                 </Card>
               )}
-
               {/* Game Status */}
               <Card className="border-border">
                 <CardHeader>
@@ -467,7 +768,6 @@ export default function VsBotPage() {
                   </div>
                 </CardContent>
               </Card>
-
               {/* Players */}
               <Card className="border-border">
                 <CardHeader>
@@ -502,7 +802,6 @@ export default function VsBotPage() {
                 </CardContent>
               </Card>
             </div>
-
             {/* Center - Chess Board */}
             <div className="flex flex-col items-center space-y-6">
               <Card className="p-4 border-border">
@@ -545,7 +844,6 @@ export default function VsBotPage() {
                   />
                 </div>
               </Card>
-
               {/* Game Status */}
               <div className="text-center space-y-2">
                 {status ? (
@@ -580,7 +878,6 @@ export default function VsBotPage() {
                   </div>
                 ) : null}
               </div>
-
               {/* Game Controls */}
               <div className="flex flex-wrap gap-3 justify-center">
                 {!gameStarted && !showCountdown && (
@@ -614,7 +911,6 @@ export default function VsBotPage() {
                 )}
               </div>
             </div>
-
             {/* Right Sidebar - Move History & AI Thinking Progress */}
             <div className="space-y-6">
               <Card className="border-border">
@@ -656,7 +952,6 @@ export default function VsBotPage() {
                   </div>
                 </CardContent>
               </Card>
-
               {/* AI Thinking Progress */}
               {isBotThinking && (
                 <Card className="border-border">
@@ -681,7 +976,6 @@ export default function VsBotPage() {
           </div>
         </div>
       </div>
-
       {/* Game Result Dialog */}
       <Dialog open={showResult} onOpenChange={setShowResult}>
         <DialogContent className="sm:max-w-md">
@@ -732,6 +1026,24 @@ export default function VsBotPage() {
                 Close
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promotion Dialog */}
+      <Dialog open={showPromotionDialog} onOpenChange={setShowPromotionDialog}>
+        <DialogContent className="sm:max-w-[300px]">
+          <DialogHeader>
+            <DialogTitle>Pawn Promotion</DialogTitle>
+            <DialogDescription>
+              Select a piece to promote your pawn to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={() => handlePromotionSelect("q")}>Queen</Button>
+            <Button onClick={() => handlePromotionSelect("r")}>Rook</Button>
+            <Button onClick={() => handlePromotionSelect("b")}>Bishop</Button>
+            <Button onClick={() => handlePromotionSelect("n")}>Knight</Button>
           </div>
         </DialogContent>
       </Dialog>

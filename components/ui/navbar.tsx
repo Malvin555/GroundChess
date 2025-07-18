@@ -5,15 +5,7 @@ import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // Import usePathname for active link highlighting
 import { Button } from "@/components/ui/button";
-import {
-  Crown,
-  User,
-  LogOut,
-  Home,
-  BarChart3,
-  Settings,
-  UserCircle,
-} from "lucide-react";
+import { Crown, User, LogOut, Home, BarChart3, UserCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -117,7 +109,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                         <span>Dashboard</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    {/* <DropdownMenuSeparator />
                     <DropdownMenuItem className="cursor-pointer">
                       <UserCircle className="h-4 w-4 mr-2" />
                       Profile
@@ -125,7 +117,7 @@ export function Navbar({ isLoggedIn, user }: NavbarProps) {
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="h-4 w-4 mr-2" />
                       Settings
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive cursor-pointer focus:text-destructive"

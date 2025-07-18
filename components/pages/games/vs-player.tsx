@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, type Socket } from "socket.io-client";
@@ -20,6 +19,13 @@ import {
 import { Chessboard } from "react-chessboard"; // New import for react-chessboard
 import { Chess, type Square } from "chess.js"; // Import Chess and Square for local validation and types
 import { Badge } from "@/components/ui/badge"; // Added Badge for status
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"; // Import Dialog components for promotion
 
 interface ChessMove {
   from: string;
@@ -83,6 +89,14 @@ export default function VsPlayerGamePage() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(
     null,
   ); // State for last move highlighting
+
+  // State for promotion dialog
+  const [showPromotionDialog, setShowPromotionDialog] = useState(false);
+  const [promotionDetails, setPromotionDetails] = useState<{
+    from: Square;
+    to: Square;
+    color: "w" | "b";
+  } | null>(null);
 
   // Fetch current user ID
   useEffect(() => {
@@ -278,12 +292,10 @@ export default function VsPlayerGamePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
         });
-
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(errorText || "Failed to join game via API.");
         }
-
         const data: ApiResponse = await res.json();
         console.log("Joined game via API:", data);
 
@@ -305,7 +317,6 @@ export default function VsPlayerGamePage() {
           yourColor: data.yourColor,
           message: data.message,
         };
-
         setGameState(initialGameState);
         setLoading(false);
 
@@ -380,21 +391,56 @@ export default function VsPlayerGamePage() {
       }
 
       const chess = new Chess(gameState.fen); // Create a local chess instance for validation
-      try {
-        const move = chess.move({
-          from: sourceSquare,
-          to: targetSquare,
-          promotion: "q",
-        }); // Default to queen promotion
+      const piece = chess.get(sourceSquare);
 
+      // Check for promotion
+      const isPromotionAttempt =
+        piece?.type === "p" &&
+        ((piece.color === "w" && targetSquare.includes("8")) ||
+          (piece.color === "b" && targetSquare.includes("1")));
+
+      if (isPromotionAttempt) {
+        // Find if there's any legal promotion move for this source/target
+        const legalPromotionMoves = chess
+          .moves({ verbose: true })
+          .filter(
+            (m) =>
+              m.from === sourceSquare &&
+              m.to === targetSquare &&
+              m.flags.includes("p"),
+          );
+
+        if (legalPromotionMoves.length > 0) {
+          setPromotionDetails({
+            from: sourceSquare,
+            to: targetSquare,
+            color: piece.color,
+          });
+          setShowPromotionDialog(true);
+          return true; // Accept the drop visually, wait for promotion selection
+        } else {
+          // If no legal promotion moves for this source/target, it's an invalid drop
+          console.error(
+            "Invalid promotion attempt: No legal promotion moves found for",
+            sourceSquare,
+            "to",
+            targetSquare,
+          );
+          return false; // Reject the drop
+        }
+      }
+
+      // If not a promotion attempt, try a regular move
+      try {
+        const move = chess.move({ from: sourceSquare, to: targetSquare });
         if (move === null) {
           console.log("Invalid move");
           return false; // Invalid move
         }
 
-        console.log("Emitting move to server:", {
+        console.log("Emitting regular move to server:", {
           gameId,
-          move: { from: sourceSquare, to: targetSquare, promotion: "q" },
+          move: { from: sourceSquare, to: targetSquare },
           userId,
         });
 
@@ -402,7 +448,7 @@ export default function VsPlayerGamePage() {
         if (socket && userId) {
           socket.emit("makeMove", {
             gameId,
-            move: { from: sourceSquare, to: targetSquare, promotion: "q" },
+            move: { from: sourceSquare, to: targetSquare },
             userId,
           });
         }
@@ -413,6 +459,44 @@ export default function VsPlayerGamePage() {
       }
     },
     [gameState, socket, gameId, userId],
+  );
+
+  const handlePromotionSelect = useCallback(
+    (promotionPiece: "q" | "r" | "b" | "n") => {
+      if (!promotionDetails || !socket || !userId || !gameState) return;
+
+      const { from, to } = promotionDetails;
+      const gameCopy = new Chess(gameState.fen); // Use current FEN for validation
+
+      try {
+        const move = gameCopy.move({
+          from,
+          to,
+          promotion: promotionPiece,
+        });
+
+        if (move) {
+          // Emit the complete move with promotion to the server
+          socket.emit("makeMove", {
+            gameId,
+            move: { from, to, promotion: promotionPiece },
+            userId,
+          });
+        } else {
+          console.error(
+            "Failed to apply promotion move locally after selection.",
+          );
+          toast.error("Invalid promotion move. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error applying promotion move locally:", error);
+        toast.error("Error during promotion. Please try again.");
+      } finally {
+        setShowPromotionDialog(false);
+        setPromotionDetails(null);
+      }
+    },
+    [promotionDetails, socket, userId, gameId, gameState],
   );
 
   const handleGiveUp = () => {
@@ -503,7 +587,6 @@ export default function VsPlayerGamePage() {
         <Clock className="h-5 w-5" />
         <span>{formatTime(elapsedTime)}</span>
       </div>
-
       <CardContent className="grid lg:grid-cols-[1fr_2fr_1fr] gap-6 p-6">
         {/* Left Column: Opponent Info & Game Stats */}
         <div className="flex flex-col gap-4">
@@ -537,7 +620,6 @@ export default function VsPlayerGamePage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
@@ -556,7 +638,6 @@ export default function VsPlayerGamePage() {
             </CardContent>
           </Card>
         </div>
-
         {/* Center Column: Chess Board & Main Status */}
         <div className="flex flex-col items-center justify-center space-y-6">
           <div className="w-full flex items-center justify-between px-4 py-2 bg-accent rounded-lg text-accent-foreground">
@@ -568,7 +649,6 @@ export default function VsPlayerGamePage() {
               {gameState.yourColor}
             </Badge>
           </div>
-
           <Chessboard
             position={gameState.fen}
             onPieceDrop={onPieceDrop}
@@ -589,7 +669,6 @@ export default function VsPlayerGamePage() {
             customSquareStyles={customSquareStyles}
             animationDuration={300}
           />
-
           <div className="text-center min-h-[60px] flex flex-col justify-center items-center space-y-2">
             {gameState.status === "waiting" && (
               <div className="space-y-2">
@@ -644,7 +723,6 @@ export default function VsPlayerGamePage() {
               </div>
             )}
           </div>
-
           {gameState.status === "playing" && (
             <div className="flex gap-3 mt-4">
               <Button
@@ -662,7 +740,6 @@ export default function VsPlayerGamePage() {
             </div>
           )}
         </div>
-
         {/* Right Column: Move History */}
         <div className="flex flex-col gap-4">
           <Card className="border-border">
@@ -705,6 +782,24 @@ export default function VsPlayerGamePage() {
           </Card>
         </div>
       </CardContent>
+
+      {/* Promotion Dialog */}
+      <Dialog open={showPromotionDialog} onOpenChange={setShowPromotionDialog}>
+        <DialogContent className="sm:max-w-[300px]">
+          <DialogHeader>
+            <DialogTitle>Pawn Promotion</DialogTitle>
+            <DialogDescription>
+              Select a piece to promote your pawn to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={() => handlePromotionSelect("q")}>Queen</Button>
+            <Button onClick={() => handlePromotionSelect("r")}>Rook</Button>
+            <Button onClick={() => handlePromotionSelect("b")}>Bishop</Button>
+            <Button onClick={() => handlePromotionSelect("n")}>Knight</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
