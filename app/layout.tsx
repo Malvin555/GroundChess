@@ -10,9 +10,11 @@ import { prisma } from "@/lib/prisma"; // ✅ needed
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ChessHub - Master Chess Online",
+  title: "ChessHub - Master Chess Online | Enhance Your Skills",
   description:
-    "Challenge AI opponents, play with friends, and improve your chess skills with our advanced training platform",
+    "Challenge AI opponents, play with friends, and improve your chess skills with our advanced training platform. Join a community of chess enthusiasts and elevate your game to the next level.",
+  keywords:
+    "chess, online chess, chess training, chess platform, chess community, chess improvement, chess AI, chess friends",
 };
 
 export default async function RootLayout({
