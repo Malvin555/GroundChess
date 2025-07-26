@@ -1,7 +1,16 @@
+
 # ♟️ Multiplayer Chess App
 
 A real-time, 2-player chess game built with **Next.js App Router**, **Socket.IO**, and **chess.js**.  
 **Note:** This project is a work in progress (WIP) — expect ongoing improvements and new features!
+
+---
+
+## 📸 Live Preview
+
+<p align="center">
+  <img src="public/img/preview-1.png.png" alt="GrounChess App Preview" width="600"/>
+</p>
 
 ## 🚀 Features
 
