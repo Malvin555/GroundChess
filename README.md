@@ -1,139 +1,106 @@
 
 # ♟️ Multiplayer Chess App
 
-A real-time, 2-player chess game built with **Next.js App Router**, **Socket.IO**, and **chess.js**.  
-**Note:** This project is a work in progress (WIP) — expect ongoing improvements and new features!
+A real-time 2-player chess game built with **Next.js App Router**, **Socket.IO**, and **chess.js**.
 
 ---
 
-## 📸 Live Preview
+## 📸 Preview
 
 <p align="center">
-  <img src="public/img/preview-1.png.png" alt="GrounChess App Preview" width="600"/>
+  <img src="public/img/preview-1.png" alt="Chess App Preview 1" width="400"/>
+  <img src="public/img/Ground-Chess 2.png" alt="Chess App Preview 2" width="400"/>
 </p>
+
+---
 
 ## 🚀 Features
 
-- **Real-time multiplayer** with Socket.IO
-- **Automatic color assignment:** White, Black, or Spectator maybe
-- **Move synchronization** across browsers
-- **JWT-based login** *(work without authentication)*
-- **Game history & match results** *(coming soon)*
-- **Bot opponent mode** *(WIP filter)*
+- Real-time multiplayer with **Socket.IO**
+- Automatic color assignment (White, Black, or Spectator)
+- Move sync across clients
+- Game history & match results
+- PostgreSQL + Prisma for persistent storage
+
+---
 
 ## 🛠️ Getting Started
 
-### 1. Clone the Repository
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/yourusername/multiplayer-chess-app.git
 cd multiplayer-chess-app
-```
-
-### 2. Install Dependencies
-
-```bash
 npm install
-```
+````
 
-### 3. Configure Environment Variables
+### 2. Set Up Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file:
 
-```
+```env
 JWT_SECRET=your_secret
 DATABASE_URL=your_postgres_url
 ```
 
-> Replace `your_secret` and `your_postgres_url` with your own credentials.
+### 3. Configure Database (PostgreSQL + Prisma)
 
-### 4. Database Setup
+* Make sure PostgreSQL is running
+* Update your `.env`:
 
-This app uses **PostgreSQL** for persistent data (users, games, match history) and **Prisma** as the ORM.
-
-- Ensure PostgreSQL is installed and running.
-- Create a database (e.g., `chess_app_db`).
-- Update your `.env`:
-
-  ```
-  DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/chess_app_db"
-  ```
-
-  Replace `USER`, `PASSWORD`, and `chess_app_db` as needed.
-
-#### Install Prisma and Client Libraries
-
-```bash
-npm install @prisma/client
-npm install --save-dev prisma
-npm install pg
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/chess_app_db"
 ```
 
-#### Initialize Prisma
+* Install dependencies:
 
 ```bash
+npm install @prisma/client prisma pg
 npx prisma init
+npx prisma db push
 ```
-### 5. Run the Development Server
+
+
+
+### 4. Start the Dev Server
 
 ```bash
 npm run dev
 ```
 
-### 6. Test Multiplayer Locally
+Visit `http://localhost:3000/game/vs-player/room1` in two browser tabs to test multiplayer.
 
-Open multiple browser tabs and navigate to:
-
-```
-http://localhost:3000/game/vs-player/room1
-```
-
-Each tab will be assigned a color (White/Black) or Spectator mode automatically.
-
-## 🧩 Tech Stack
-
-| Technology         | Purpose                                 |
-|--------------------|-----------------------------------------|
-| Next.js App Router | Frontend framework                      |
-| TypeScript         | Type safety                             |
-| Socket.IO          | Real-time communication                 |
-| chess.js           | Chess logic engine                      |
-| react-chessboard   | Interactive chessboard UI               |
-| PostgreSQL + Prisma| Database & ORM                          |
+---
 
 ## 📅 Roadmap
 
-- [x] Real-time multiplayer gameplay
-- [x] Color auto-assignment
-- [x] Move synchronization
-- [ ] JWT-based authentication *(in progress)*
-- [ ] Game history & match results *(coming soon)*
-- [ ] Play against a bot *(WIP)*
-- [ ] Enhanced UI/UX and mobile support
+* ✅ Real-time gameplay
+* ✅ Color assignment
+* ✅ Move sync
+* ✅ Match history
+* ✅ Play vs bot
+* ✅ Responsive UI
 
-## ⚠️ Notes
+---
 
-- This project is under active development. Some features may be incomplete or unstable.
-- Contributions, bug reports, and suggestions are welcome!
+## 🙋 FAQ
+
+**How do I play with a friend?**
+Share a room URL (e.g., `/game/vs-player/room1`). Anyone with the link can join.
+
+**How does the database work?**
+Prisma + PostgreSQL handles game data. See "Getting Started" for setup.
+
+---
+
+## 🤝 Contributing
+
+Contributions and suggestions are welcome! Feel free to open an issue or PR.
+
+---
 
 ## 📖 License
 
 MIT
 
-## 🙋 FAQ
-
-**Q: How do I play with a friend?**  
-A: Share the room URL (e.g., `/game/vs-player/room1`) with your friend. Both of you can join the same room for a private match.
-
-**Q: Can I play against a bot?**  
-A: Bot mode work but still want to make it better.
-
-**Q: Where is my game history?**  
-A: Game history and match results are planned for a future release.
-
-**Q: How do I use the database?**  
-A: The app uses PostgreSQL with Prisma. See the "Database Setup" section above for configuration, schema, and usage details.
-
-## 🤝 Contributing
-
-Pull requests and feedback are encouraged! Please open an issue or submit a PR if you have ideas or find bugs.
+```
